@@ -1,14 +1,11 @@
-import {
-  ClerkProvider,
-  SignInButton,
-  SignUpButton,
-  Show,
-  UserButton,
-} from "@clerk/nextjs";
-import { Suspense } from "react";
+import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { env } from "@/lib/env";
 import "./globals.css";
+
+// Fail loudly on startup if environment variables are missing
+env.validate();
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -25,36 +22,44 @@ export const metadata: Metadata = {
   description: "Repository dependency map",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html
       lang="en"
+      suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+(function() {
+  try {
+    var stored = localStorage.getItem('cartograph-theme') || 'system';
+    document.documentElement.setAttribute('data-theme', stored);
+    var systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    var isDark = stored === 'dark' || (stored === 'system' && systemDark);
+    if (isDark) {
+      document.documentElement.classList.add('dark');
+      document.documentElement.classList.remove('light');
+      document.documentElement.style.colorScheme = 'dark';
+    } else {
+      document.documentElement.classList.remove('dark');
+      document.documentElement.classList.add('light');
+      document.documentElement.style.colorScheme = 'light';
+    }
+  } catch (e) {}
+})();
+`,
+          }}
+        />
+      </head>
+      <body className="min-h-full flex flex-col bg-background text-foreground">
         <ClerkProvider>
-          <header className="flex items-center justify-between border-b border-black/[.08] dark:border-white/[.145] px-6 py-3 bg-white dark:bg-black">
-            <span className="font-mono text-sm font-semibold tracking-tight">Cartograph</span>
-            <nav className="flex items-center gap-3">
-              <Suspense fallback={null}>
-                <Show when="signed-out">
-                  <SignInButton>
-                    <button className="px-3 py-1.5 text-xs font-mono rounded border border-black/[.08] dark:border-white/[.145] hover:bg-black/[.04] dark:hover:bg-white/[.08] transition-colors cursor-pointer">
-                      Sign In
-                    </button>
-                  </SignInButton>
-                  <SignUpButton>
-                    <button className="px-3 py-1.5 text-xs font-mono rounded bg-foreground text-background hover:opacity-90 transition-opacity cursor-pointer">
-                      Sign Up
-                    </button>
-                  </SignUpButton>
-                </Show>
-                <Show when="signed-in">
-                  <UserButton />
-                </Show>
-              </Suspense>
-            </nav>
-          </header>
           {children}
         </ClerkProvider>
       </body>
