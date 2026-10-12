@@ -1,18 +1,22 @@
 import { auth, clerkClient } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 import { AppShell } from '@/components/app-shell';
+import { getVisibleAnalyses } from '@/lib/data/analyses';
+import { AnalysesList } from '@/components/dashboard/analyses-list';
 
 interface PageProps {
   params: Promise<{ slug: string }>;
 }
 
-/**
- * Organization Workspace Page.
- * Server component that reads the current organization during server rendering
- * and displays it on the first paint without relying on client-side hydration.
- */
 export const instant = false;
 
+/**
+ * Organization Workspace & Dashboard.
+ * 
+ * Fetches visible analyses via database client carrying the user's Clerk JWT.
+ * Postgres Row-Level Security filters analyses to the active organization without
+ * any application-level tenant filtering.
+ */
 export default async function OrgWorkspacePage({ params }: PageProps) {
   const { slug } = await params;
   const { orgId, orgSlug, orgRole } = await auth.protect();
@@ -36,64 +40,67 @@ export default async function OrgWorkspacePage({ params }: PageProps) {
     orgName = org.name;
     membersCount = org.membersCount;
   } catch {
-    // If request was aborted during client navigation, fallback to slug
     orgName = slug;
   }
 
+  // Query database under RLS: no application-level org filter
+  const { analyses, error: dbError } = await getVisibleAnalyses();
+
   return (
-    <AppShell
-      org={{
-        id: orgId,
-        name: orgName,
-        slug: orgSlug,
-        membersCount,
-      }}
-      role={orgRole}
-    >
-      <div className="max-w-2xl font-mono">
-        <div className="rounded border border-surface-border bg-surface p-6 space-y-4">
-          <div className="flex items-center justify-between border-b border-surface-border pb-3">
-            <div>
-              <h2 className="text-sm font-bold text-foreground uppercase tracking-wide">
-                Team Workspace
-              </h2>
-              <p className="text-xs text-foreground/60 mt-0.5">
-                Rendered server-side for organization{' '}
-                <span className="text-accent font-semibold">{orgName}</span>
-              </p>
+    <AppShell role={orgRole}>
+      <div className="space-y-8">
+        {/* Workspace Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-6 border-b border-surface-border">
+          <div>
+            <div className="flex items-center gap-2.5">
+              <h1 className="text-xl font-semibold tracking-tight text-foreground">
+                {orgName}
+              </h1>
+              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                Active
+              </span>
             </div>
-            <span className="rounded bg-incoming/10 border border-incoming/30 px-2 py-0.5 text-[10px] text-incoming font-medium">
-              active
-            </span>
+            <p className="text-xs text-foreground/60 mt-1">
+              Dependency graphs and codebase architecture for this organization
+            </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-4 text-xs pt-2">
-            <div>
-              <span className="text-foreground/50 text-[10px] uppercase block">
-                Organization Slug
-              </span>
-              <span className="text-foreground font-semibold">{orgSlug}</span>
+          <div className="flex items-center gap-3 text-xs text-foreground/60">
+            <div className="flex items-center gap-1.5">
+              <svg
+                className="h-3.5 w-3.5 text-foreground/40"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+              </svg>
+              <span>{membersCount ?? 1} {membersCount === 1 ? 'member' : 'members'}</span>
             </div>
-            <div>
-              <span className="text-foreground/50 text-[10px] uppercase block">
-                Organization ID
-              </span>
-              <span className="text-foreground text-[11px] break-all">{orgId}</span>
-            </div>
-            <div>
-              <span className="text-foreground/50 text-[10px] uppercase block">
-                Current User Role
-              </span>
-              <span className="text-foreground font-semibold">{orgRole || 'org:member'}</span>
-            </div>
-            <div>
-              <span className="text-foreground/50 text-[10px] uppercase block">
-                Total Members
-              </span>
-              <span className="text-foreground font-semibold">{membersCount ?? 1}</span>
-            </div>
+            <span className="text-surface-border">•</span>
+            <span className="font-mono text-[11px] text-foreground/50">
+              {orgSlug}
+            </span>
           </div>
         </div>
+
+        {/* Database Error Alert (if tables/migrations are not yet applied) */}
+        {dbError && (
+          <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-xs text-amber-700 dark:text-amber-400">
+            <div className="font-medium mb-1">Database connection notice:</div>
+            <div className="font-mono text-[11px]">{dbError}</div>
+          </div>
+        )}
+
+        {/* Dashboard Analyses List */}
+        <AnalysesList analyses={analyses} orgName={orgName} />
       </div>
     </AppShell>
   );
