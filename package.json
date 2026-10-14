@@ -6,25 +6,34 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "parse": "node scripts/parse.ts",
+    "map-counts": "node scripts/map-counts.ts",
+    "insights": "node scripts/insights.ts",
+    "analyze": "node --env-file=.env.local scripts/analyze.ts"
   },
   "dependencies": {
-    "@clerk/nextjs": "^7.9.14",
-    "@supabase/ssr": "^0.12.7",
-    "@supabase/supabase-js": "^2.117.3",
-    "next": "16.4.0",
-    "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "@clerk/nextjs": "^7.9.7",
+    "@dagrejs/dagre": "^3.1.1",
+    "@supabase/supabase-js": "^2.117.2",
+    "@xyflow/react": "^12.12.0",
+    "langsmith": "0.10.5",
+    "next": "16.3.6",
+    "openai": "7.23.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "tar": "^7.5.22",
+    "ts-morph": "^28.0.0"
   },
   "devDependencies": {
-    "@tailwindcss/turbopack": "^4",
+    "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.4.0",
+    "eslint-config-next": "16.3.6",
     "tailwindcss": "^4",
     "typescript": "^5"
   },
-  "packageManager": "pnpm@12.3.4"
+  "packageManager": "pnpm@10.32.1"
 }

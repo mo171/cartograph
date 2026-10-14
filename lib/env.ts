@@ -1,42 +1,31 @@
-/**
- * Environment configuration validator.
- * Fails loudly at startup if any required environment variable is missing.
- */
+// Checked once when the server boots (see next.config.ts). A missing key should
+// stop `next dev` / `next build` immediately, not surface later as a vague
+// Clerk or Supabase error on some unrelated screen.
+const REQUIRED = [
+  "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
+  "CLERK_SECRET_KEY",
+  "NEXT_PUBLIC_CLERK_SIGN_IN_URL",
+  "NEXT_PUBLIC_CLERK_SIGN_UP_URL",
+  "NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL",
+  "NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL",
+  "NEXT_PUBLIC_SUPABASE_URL",
+  "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
+  "SUPABASE_SECRET_KEY",
+] as const;
 
-function requireEnv(key: string, fallbackKey?: string): string {
-  const val = process.env[key] || (fallbackKey ? process.env[fallbackKey] : undefined);
-  if (!val || val.trim() === '') {
+type EnvKey = (typeof REQUIRED)[number];
+
+export function assertEnv(): void {
+  const missing = REQUIRED.filter((key) => !process.env[key]?.trim());
+  if (missing.length > 0) {
     throw new Error(
-      `[Cartograph Boot Error] Missing required environment variable: ${key}${
-        fallbackKey ? ` (or ${fallbackKey})` : ''
-      }`
+      `Missing environment variables (set them in .env.local):\n  ${missing.join("\n  ")}`,
     );
   }
-  return val.trim();
 }
 
-export const env = {
-  get NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY(): string {
-    return requireEnv('NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY');
-  },
-  get CLERK_SECRET_KEY(): string {
-    return requireEnv('CLERK_SECRET_KEY');
-  },
-  get NEXT_PUBLIC_SUPABASE_URL(): string {
-    return requireEnv('NEXT_PUBLIC_SUPABASE_URL');
-  },
-  get NEXT_PUBLIC_SUPABASE_ANON_KEY(): string {
-    return requireEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY', 'NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY');
-  },
-  get APP_URL(): string {
-    return process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-  },
-  validate(): void {
-    // Access every required property to trigger validation immediately
-    void this.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
-    void this.CLERK_SECRET_KEY;
-    void this.NEXT_PUBLIC_SUPABASE_URL;
-    void this.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  },
-};
-
+export function env(key: EnvKey): string {
+  const value = process.env[key]?.trim();
+  if (!value) throw new Error(`Missing environment variable ${key}`);
+  return value;
+}

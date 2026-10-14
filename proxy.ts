@@ -1,26 +1,11 @@
-import { clerkMiddleware } from "@clerk/nextjs/server";
-import { NextResponse } from "next/server";
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
-/**
- * Public routes that do not require authentication.
- * All other routes are protected and redirect to login before any page HTML renders.
- */
-const publicRoutePrefixes = ["/sign-in", "/sign-up", "/__clerk"];
+const isPublic = createRouteMatcher(["/sign-in(.*)", "/sign-up(.*)"]);
 
+// Protection happens here, before any route renders, so a signed-out visitor
+// gets a redirect and never receives the page's HTML.
 export default clerkMiddleware(async (auth, req) => {
-  const { pathname } = req.nextUrl;
-  const isPublic = publicRoutePrefixes.some(
-    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
-  );
-
-  if (!isPublic) {
-    const { userId } = await auth();
-    if (!userId) {
-      const signInUrl = new URL("/sign-in", req.url);
-      signInUrl.searchParams.set("redirect_url", req.url);
-      return NextResponse.redirect(signInUrl);
-    }
-  }
+  if (!isPublic(req)) await auth.protect();
 });
 
 export const config = {

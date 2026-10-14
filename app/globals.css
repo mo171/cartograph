@@ -1,87 +1,78 @@
 @import "tailwindcss";
 
+/*
+ * data-theme on <html> is system | light | dark. color-scheme decides which
+ * side of every light-dark() pair applies, so a forced theme beats the OS
+ * preference without a second copy of the palette.
+ */
 :root {
-  color-scheme: light;
-  --background: #fbfbfb;
-  --foreground: #18181b;
-  --surface: #ffffff;
-  --surface-border: #e4e4e7;
-  --accent: #2563eb;
-  --incoming: #16a34a;
-  --outgoing: #d97706;
+  color-scheme: light dark;
+
+  --canvas: light-dark(#fafafa, #0c0c0d);
+  --surface: light-dark(#ffffff, #131315);
+  --raised: light-dark(#f0f0f2, #1d1d20);
+  --line: light-dark(#e3e3e7, #2a2a2e);
+  --fg: light-dark(#18181b, #e6e6e9);
+  --fg-muted: light-dark(#6b6b73, #8d8d96);
+  --accent: light-dark(#2563eb, #4f8bff);
+  --accent-fg: #ffffff;
+
+  /* Direction: into a file, out of a file. */
+  --incoming: light-dark(#15803d, #4ade80);
+  --outgoing: light-dark(#b45309, #fbbf24);
+
+  /* File kinds. Kept clear of the accent blue and the two direction hues. */
+  --kind-1: light-dark(#7c3aed, #a78bfa);
+  --kind-2: light-dark(#c026d3, #e879f9);
+  --kind-3: light-dark(#e11d48, #fb7185);
+  --kind-4: light-dark(#0891b2, #22d3ee);
+
+  --edge: light-dark(#a1a1aa, #52525b);
 }
 
-:root.dark,
-:root[data-theme="dark"] {
-  color-scheme: dark;
-  --background: #09090b;
-  --foreground: #f4f4f5;
-  --surface: #121215;
-  --surface-border: #27272a;
-  --accent: #3b82f6;
-  --incoming: #22c55e;
-  --outgoing: #f59e0b;
-}
-
-:root.light,
 :root[data-theme="light"] {
   color-scheme: light;
-  --background: #fbfbfb;
-  --foreground: #18181b;
-  --surface: #ffffff;
-  --surface-border: #e4e4e7;
-  --accent: #2563eb;
-  --incoming: #16a34a;
-  --outgoing: #d97706;
 }
 
-/* Follows system color scheme only when light is not explicitly forced */
-@media (prefers-color-scheme: dark) {
-  :root:not(.light):not([data-theme="light"]) {
-    color-scheme: dark;
-    --background: #09090b;
-    --foreground: #f4f4f5;
-    --surface: #121215;
-    --surface-border: #27272a;
-    --accent: #3b82f6;
-    --incoming: #22c55e;
-    --outgoing: #f59e0b;
-  }
-}
-
-@media (prefers-color-scheme: light) {
-  :root:not(.dark):not([data-theme="dark"]) {
-    color-scheme: light;
-    --background: #fbfbfb;
-    --foreground: #18181b;
-    --surface: #ffffff;
-    --surface-border: #e4e4e7;
-    --accent: #2563eb;
-    --incoming: #16a34a;
-    --outgoing: #d97706;
-  }
+:root[data-theme="dark"] {
+  color-scheme: dark;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-canvas: var(--canvas);
   --color-surface: var(--surface);
-  --color-surface-border: var(--surface-border);
+  --color-raised: var(--raised);
+  --color-line: var(--line);
+  --color-fg: var(--fg);
+  --color-fg-muted: var(--fg-muted);
   --color-accent: var(--accent);
+  --color-accent-fg: var(--accent-fg);
   --color-incoming: var(--incoming);
   --color-outgoing: var(--outgoing);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@variant dark (&:where([data-theme="dark"], [data-theme="dark"] *, .dark, .dark *));
-
-body {
-  background-color: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans), system-ui, sans-serif;
-  margin: 0;
-  padding: 0;
-  -webkit-font-smoothing: antialiased;
+/*
+ * Every size is in rem, so the root size is the one dial. Up to a 1440px-wide
+ * viewport it's 16px; past that it grows in proportion, so a large display
+ * shows the laptop layout scaled up rather than the same small layout
+ * floating in empty space. Capped for very wide windows.
+ */
+html {
+  font-size: clamp(16px, 100vw / 90, 32px);
 }
 
+body {
+  background: var(--canvas);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+}
+
+/* React Flow's base stylesheet leaves edges unstyled; they're greyscale until
+   a selection gives them a direction. */
+.react-flow__edge-path {
+  stroke: var(--edge);
+  fill: none;
+}
