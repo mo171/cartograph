@@ -5,5 +5,7 @@ declare global {
   // The org name rides on the token so nothing has to ask Clerk for it.
   interface CustomJwtSessionClaims {
     org_name?: string;
+    org_slug?: string;
+    org_id?: string;
   }
 }

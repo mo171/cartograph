@@ -14,14 +14,8 @@ const TALLY_ORDER: Tally[] = ["running", "queued", "stale", "complete", "failed"
 export default async function DashboardPage() {
   const { sessionClaims } = await auth();
 
-  // Read off the token, never fetched from Clerk. If the claim is missing the
-  // session token hasn't been customised yet, and that should be obvious.
-  const orgName = sessionClaims?.org_name;
-  if (!orgName) {
-    throw new Error(
-      'Session token has no org_name claim. Add "org_name": "{{org.name}}" in Clerk → Sessions → Customize session token.',
-    );
-  }
+  // Prefer org_name, fallback to org_slug or a default workspace label
+  const orgName = sessionClaims?.org_name ?? sessionClaims?.org_slug ?? "Workspace";
 
   const rows = await loadRows();
 
