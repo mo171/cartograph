@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { isModelRole, MODEL_ROLES, type ModelRole } from "../roles.ts";
 import { traceable } from "langsmith/traceable";
 import { ai, MODELS, traceConfig } from "./client.ts";
+import { evaluateLiveFileExplanation, evaluateLiveFolderExplanation } from "../evals/live.ts";
 import {
   CLASSIFY_SYSTEM,
   classifyMessage,
@@ -9,7 +10,7 @@ import {
   EXPLAIN_FOLDER_SYSTEM,
   explainFileMessage,
   explainFolderMessage,
-  PROMPT_VERSION,
+  PROMPT_VERSIONS,
   type ClassifyInput,
   type FileInput,
   type FolderInput,
@@ -37,10 +38,10 @@ const MAX_SOURCE_CHARS = 120_000;
 const EXCERPT_LINES = 60;
 
 export function cacheKey(task: Task, model: string, input: unknown): string {
-  return createHash("sha256").update(JSON.stringify({ task, version: PROMPT_VERSION, model, input })).digest("hex");
+  return createHash("sha256").update(JSON.stringify({ task, version: PROMPT_VERSIONS[task], model, input })).digest("hex");
 }
 
-export async function explainFile(input: FileInput, deps: { cache: Cache; source: SourceOf }): Promise<Explanation> {
+export async function explainFile(input: FileInput, deps: { cache: Cache; source: SourceOf; evaluate?: typeof evaluateLiveFileExplanation }): Promise<Explanation> {
   const model = MODELS.explain;
   const run = traceable(async (question: FileInput): Promise<Explanation> => {
     const key = cacheKey("explain-file", model, question);
@@ -50,10 +51,16 @@ export async function explainFile(input: FileInput, deps: { cache: Cache; source
     await deps.cache.write({ key, task: "explain-file", model, body });
     return { body, model, cached: false };
   }, traceConfig("explain-file"));
-  return run(input);
+  const answer = await run(input);
+  try {
+    await (deps.evaluate ?? evaluateLiveFileExplanation)(input, answer);
+  } catch (error) {
+    console.error("Live file explanation evaluation failed:", error);
+  }
+  return answer;
 }
 
-export async function explainFolder(input: FolderInput, deps: { cache: Cache }): Promise<Explanation> {
+export async function explainFolder(input: FolderInput, deps: { cache: Cache; evaluate?: typeof evaluateLiveFolderExplanation }): Promise<Explanation> {
   const model = MODELS.explain;
   const run = traceable(async (question: FolderInput): Promise<Explanation> => {
     const key = cacheKey("explain-folder", model, question);
@@ -63,7 +70,13 @@ export async function explainFolder(input: FolderInput, deps: { cache: Cache }):
     await deps.cache.write({ key, task: "explain-folder", model, body });
     return { body, model, cached: false };
   }, traceConfig("explain-folder"));
-  return run(input);
+  const answer = await run(input);
+  try {
+    await (deps.evaluate ?? evaluateLiveFolderExplanation)(input, answer);
+  } catch (error) {
+    console.error("Live folder explanation evaluation failed:", error);
+  }
+  return answer;
 }
 
 // "none" is a real answer, and cached like any other: the model wasn't made

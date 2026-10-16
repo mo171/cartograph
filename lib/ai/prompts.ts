@@ -6,9 +6,9 @@ import type { EdgeKind } from "../parser/types.ts";
 // parser's stored files and edges. The model is never asked to find a
 // connection, only to explain the ones it's given.
 
-// Bump when a prompt's wording changes: it's part of every cache key, so old
-// answers stop matching rather than being served for a question no longer asked.
-export const PROMPT_VERSION = 1;
+// Bump only the prompt that changes. Each value is part of that task's cache
+// key, so a file-prompt edit does not spend tokens re-running unchanged tasks.
+export const PROMPT_VERSIONS = { "explain-file": 2, "explain-folder": 1, "classify-file": 1 } as const;
 
 export type NeighbourFacts = {
   path: string;
@@ -62,6 +62,8 @@ const HONESTY = `The lists of imports and importers were resolved by a parser an
 export const EXPLAIN_FILE_SYSTEM = `You explain one file of a TypeScript or JavaScript repository to a developer reading the repository for the first time.
 
 You're given the file's source, and every file it imports and every file that imports it, each with its role and the names it exports. Say what this file does and what part it plays between the files that depend on it and the files it depends on. Two or three short paragraphs; a short bullet list only if it genuinely helps. Refer to neighbours by path where it helps the reader, not as an exhaustive inventory.
+
+Name the concrete responsibilities visible in this file's source and exports. Explain how the supplied imports support those responsibilities, and which supplied importers depend on this file. If no parsed file imports it, say that plainly. Prefer a few specific, source-grounded facts over generic descriptions of the file's layer. Do not claim how an importer calls a symbol unless the provided evidence shows it.
 
 ${HONESTY}
 

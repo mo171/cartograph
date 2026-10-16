@@ -35,17 +35,23 @@ with a convention role that is also present in `MODEL_ROLES`; structural or
 otherwise forbidden labels are excluded. For each selected row it recreates
 the existing `ClassifyInput`, fetches the source at the analysis commit, calls
 the classifier without the ground-truth role, and compares its returned role to
-the conventional role. The script rejects a run with fewer than 30 examples
+the conventional role. For a self-import edge it also removes the focal file's
+role from both neighbour lists, so the held-out answer cannot leak through its
+own context. The script rejects a run with fewer than 30 examples
 and reports correct, total, and percentage.
 
 Prompt comparison is a separate script-driven experiment over a frozen,
-versioned JSONL explanation dataset. `evals/prompts/explain-file.v0.ts` holds
-the retired prompt; the application continues to ship only the current
-prompt. The script runs both versions against exactly the same dataset,
+versioned JSONL explanation dataset. `evals/prompts/explain-file.v1.ts` holds
+the previously shipped v1 prompt from commit `5cb2ece`; the application ships
+a more specific v2 prompt. The script runs both versions against exactly the same dataset,
 publishes two named LangSmith experiments, and runs a clearly-labelled
 model-as-judge evaluator that selects the more specific and useful answer for
 each input. The reported win rate and margin are subjective measurements, not
 ground truth.
+
+Only the file explanation cache version advances to v2. Folder explanations
+and role classification keep their v1 cache keys because their prompts did not
+change.
 
 ## Boundaries
 

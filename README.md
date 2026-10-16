@@ -211,6 +211,41 @@ pnpm map-counts
 pnpm analyze
 ```
 
+### Phase 11 quality evaluations
+
+Standalone scripts load the same `.env*` files as Next.js. Set `LANGSMITH_API_KEY`
+and `LANGSMITH_PROJECT` for trace inspection. Role and prompt experiments also
+need `OPENAI_API_KEY`; role accuracy needs the configured Supabase secret and
+reads a completed analysis. These commands call paid model APIs when noted.
+
+```bash
+# Score up to 100 recent real file/folder explanations; no model calls.
+pnpm eval:invented-paths --limit 100
+
+# Reclassify held-out convention labels from a completed analysis (at least 30 files).
+# Uses model calls and uploads evaluation examples to LangSmith.
+pnpm eval:roles --analysis <analysis-uuid>
+
+# Run the current v2 and previously shipped v1 file prompts over the same frozen dataset.
+# Uses model calls and a separate model judge.
+pnpm eval:prompts
+```
+
+The invented-path score is deterministic: every repository path token in an
+answer is checked against the paths supplied to that explanation. A failure
+lists its trace ID, the invented path, and the answer; compare that path with
+the trace's `allowedPaths` to confirm it. The live check runs after cached and
+fresh explanations. If tracing is off, explanations still work but the recent
+traffic command has no runs to score.
+
+Role accuracy prints correct/total and a percentage after at least 30 valid
+held-out files. Structural convention roles are excluded because the classifier
+cannot return them. Prompt comparison creates two LangSmith experiments on
+one dataset and prints each experiment name, the comparison dashboard link,
+win counts, and the percentage-point margin. Its **subjective model-judge
+score** measures usefulness and specificity, not an exact fact. The retired v1
+prompt is a snapshot of commit `5cb2ece` and lives only under `evals/`.
+
 ---
 
 ## 📐 Project Structure
